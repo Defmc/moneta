@@ -19,6 +19,8 @@ struct Options {
     pub cache: Opt,
     #[darling(default)]
     pub count: Opt,
+    #[darling(default)]
+    pub visible: Opt,
 }
 
 #[derive(Debug, Default, FromMeta, PartialEq, Eq)]
@@ -95,6 +97,13 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         Err(e) => return TokenStream::from(e.write_errors()),
     };
 
+    let vis = &def_fn.vis;
+    let vis = if options.visible.is_enabled(cfg!(feature = "visible")) {
+        quote! { pub }
+    } else {
+        quote! { #vis }
+    };
+
     let cache_id = Ident::new(
         &format!("__MONETA_FN_CACHE_{}", def_fn.sig.ident),
         Span::call_site(),
@@ -152,9 +161,9 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         args_lit_name.iter(),
         def_args.iter().copied(),
     );
-    let cache_def = cache_def(&cache_id, &ret_ty);
+    let cache_def = cache_def(&cache_id, &vis, &ret_ty);
     let (cache_get, cache_set) = cache(&options.cache, &def_args, &out_args, &cache_id, &res_id);
-    let (counter_def, counter_inc) = counter(&options.count, &counter_id);
+    let (counter_def, counter_inc) = counter(&options.count, &vis, &counter_id);
 
     let pre_injection = quote! {{
         #counter_inc
@@ -190,11 +199,11 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     TokenStream::from(code)
 }
 
-fn cache_def(cache_id: &Ident, cache_ret: &TokenStream2) -> TokenStream2 {
+fn cache_def(cache_id: &Ident, vis: &TokenStream2, cache_ret: &TokenStream2) -> TokenStream2 {
     quote! {
         #[allow(non_upper_snake_case)]
         lazy_static::lazy_static! {
-            pub static ref #cache_id: std::sync::RwLock<hashbrown::HashMap<String, #cache_ret>> =
+            #vis static ref #cache_id: std::sync::RwLock<hashbrown::HashMap<String, #cache_ret>> =
                 std::sync::RwLock::new(hashbrown::HashMap::new());
         }
     }
@@ -275,10 +284,10 @@ fn cache(
     (get_cache, set_cache)
 }
 
-fn counter(enabled: &Opt, counter_id: &Ident) -> (TokenStream2, TokenStream2) {
+fn counter(enabled: &Opt, vis: &TokenStream2, counter_id: &Ident) -> (TokenStream2, TokenStream2) {
     let def = quote! {
         #[allow(non_upper_snake_case)]
-        pub static #counter_id: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        #vis static #counter_id: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     };
 
     let inc = if enabled.is_enabled(cfg!(feature = "count")) {
