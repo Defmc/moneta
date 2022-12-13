@@ -74,11 +74,25 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let name = outter.sig.ident.clone();
     let args_lit_name: Vec<_> = args
         .iter()
-        .map(|(name, _, _)| LitStr::new(&format!("{:?}", quote! { #name }), Span::call_site()))
+        .map(|(name, _, _)| {
+            LitStr::new(
+                &format!(
+                    "{}",
+                    if let Pat::Ident(ident) = name.as_ref() {
+                        let id = TokenStream::from(quote! { #ident });
+                        syn::parse::<Ident>(id).ok().map(|id| id.to_string())
+                    } else {
+                        None
+                    }
+                    .unwrap_or_else(|| "pat".to_string())
+                ),
+                Span::call_site(),
+            )
+        })
         .collect();
+    let name = outter.sig.ident.clone();
     let out_args: Vec<_> = args.iter().map(|(_, arg, _)| arg).collect();
     let def_args: Vec<_> = args.iter().map(|(name, _, _)| name).collect();
     let func_name = LitStr::new(&format!("{name}"), Span::call_site());
@@ -93,7 +107,12 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         quote! { let #res_id = #name (#(#out_args),*); }
     };
 
-    let (trace_in, trace_out) = trace(&func_name, &start_id, &args_lit_name, &def_args);
+    let (trace_in, trace_out) = trace(
+        &func_name,
+        &start_id,
+        args_lit_name.iter(),
+        def_args.iter().map(|p| *p),
+    );
     let cache_def = cache_def(&meta, &cache_id, &cache_ret);
     let (cache_get, cache_set) = cache(
         meta.to_string() != "no_cache",
@@ -108,8 +127,8 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         #counter_inc
         #trace_in
         #cache_get
-    }};
-    let pre_injection = TokenStream::from(pre_injection);
+    }}
+    .into();
 
     let post_injection = quote! {{
         let #start_id = std::time::Instant::now();
@@ -117,8 +136,9 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         #trace_out
         #cache_set
         return #res_id;
-    }};
-    let post_injection = TokenStream::from(post_injection);
+    }}
+    .into();
+
     def_fn
         .block
         .stmts
@@ -151,21 +171,21 @@ fn cache_def(meta: &TokenStream, cache_id: &Ident, cache_ret: &TokenStream2) -> 
     }
 }
 
-fn trace(
+fn trace<'a>(
     name_str: &LitStr,
     start_id: &Ident,
-    out_args: &Vec<LitStr>,
-    def_args: &Vec<&Box<Pat>>,
+    args_names: impl Iterator<Item = &'a LitStr>,
+    def_args: impl Iterator<Item = &'a Box<Pat>>,
 ) -> (TokenStream2, TokenStream2) {
     let in_trace = if cfg!(feature = "trace") {
         quote! {{
             let args_fmt: String = [
-                #(#out_args),*
+                #(#args_names,)*
             ].into_iter()
-                .zip([#(format!("{:?}", #def_args)),*].into_iter())
+                .zip([#(format!("{:?}", #def_args),)*].into_iter())
                 .map(|(n, v): (&str, String)| format!("\n\t{}: {}", n, v))
                 .collect();
-            println!("in {}: {:?}", #name_str, args_fmt);
+            println!("in {}: {}", #name_str, args_fmt);
         }}
     } else {
         quote! { ; }
