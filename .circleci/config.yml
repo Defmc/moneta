@@ -1,0 +1,111 @@
+version: 2.1
+
+commands:
+  setup-cache-env:
+    steps:
+      - run: |
+          echo 'export RUSTFLAGS="$RUSTFLAGS -C link-arg=-fuse-ld=lld"' >> $BASH_ENV
+          echo 'export "RUSTC_WRAPPER"="sccache"' >> $BASH_ENV
+          echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
+          sccache --version
+
+  restore-cache:
+    steps:
+      - run: echo "paused by while"
+      # - restore_cache:
+      #     name: Restore sccache cache
+      #     key: sccache-{{ .Environment.CIRCLE_JOB_REPONAME }}-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+
+  save-cache:
+    steps:
+      - run: echo "paused by while"
+      # - save_cache:
+      #     name: Save sccache cache
+      #     key: sccache-{{ .Environment.CIRCLE_JOB_REPONAME }}-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
+      #     paths:
+      #       - "~/.cache/sccache"
+
+jobs:
+  build-linux:
+    docker:
+      - image: defmc/rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - setup-cache-env
+      - restore-cache
+      - run: cargo build -vv --release --all-features
+      - save-cache
+
+  clippy:
+    docker:
+      - image: defmc/rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - setup-cache-env
+      - restore-cache
+      - run: rustup component add clippy
+      - run: cargo clippy -vv --tests --all --all-features --examples -- -D warnings
+      - save-cache
+
+  format:
+    docker:
+      - image: defmc/rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - run: cargo fmt -v --all -- --check
+
+  test:
+    docker:
+      - image: defmc/rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - setup-cache-env
+      - restore-cache
+      - run: cargo test -vv --all --all-features -- --show-output --test-threads=1
+      - save-cache
+
+  udeps:
+    docker:
+      - image: defmc/rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - setup-cache-env
+      - restore-cache
+      - run: cargo +nightly udeps -vv --all --all-features
+      - save-cache
+
+  audit:
+    docker:
+      - image: defmc/rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - setup-cache-env
+      - restore-cache
+      - run: cargo generate-lockfile -vv
+      - run: cargo audit
+      - save-cache
+
+  bench:
+    docker:
+      - image: defmc/rust:latest
+    resource_class: small
+    steps:
+      - checkout
+      - setup-cache-env
+      - restore-cache
+      - run: cargo bench -vv --all --all-features
+      - save-cache
+
+workflows:
+  test:
+    jobs: [build-linux, test, bench]
+  code-quality:
+    jobs: [format, clippy, udeps]
+  security:
+    jobs: [audit]
