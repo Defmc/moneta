@@ -19,7 +19,7 @@ fn foo(a: u8) -> u8 {
 ```
 
 ## Dependencies
-Just `cache` requires that both `lazy_static` and `hashbrown` are enabled in the target module. When enabled, it also requires that all parameters implement the `Debug` trait and `Clone` for the return type.
+`cache` requires that both `lazy_static` and `hashbrown` are enabled in the target module. When enabled in a function, it also requires that all parameters implement the `Debug` trait and `Clone` for the return type.
 
 ## Wait... Why `Debug` for parameters and not `Clone`?
 Consider these scenarios:
@@ -46,6 +46,21 @@ There isn't ~yet~ a good way to enable/disable specific features in different pr
 moneta_fn = { version = "*", default-features = false, features = ["cache", "count", "time"] }
 ```
 
+Another way to do it, is using a setting a default feature.
+```toml 
+[dependencies]
+moneta_fn = { version = "*", default-features = false, features = ["cache", "count", "time"] }
+
+[features]
+default = ["debug_mode"]
+debug_mode = ["moneta_fn/trace"]
+```
+
+And when compiling with a profile relase, use `--no-default-features`
+```bash
+cargo build --release --no-default-features
+```
+
 ## How do I enable/disable `trace`/`count`/`cache` for just one function?
 Set `trace`/`count`/`cache` as `force`/`forbid`
 ```rust
@@ -57,8 +72,3 @@ fn foo(a: u8) -> u8 {
 
 ## Will `count!`/`get_cache!` calls break when the `count`/`cache` feature is disabled?
 No. The counting or cache will just not be updated.
-
-### TODO
-- [ ] private storage and count members
-- [x] thread-safe counter
-- [x] attribute parsing
