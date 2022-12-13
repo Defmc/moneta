@@ -89,6 +89,9 @@ fn parse_path(input: TokenStream) -> syn::Result<(Vec<Ident>, Ident)> {
 pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     let mut outter = parse_macro_input!(input as ItemFn);
     let mut def_fn = outter.clone();
+    let fn_name = def_fn.sig.ident;
+    def_fn.sig.ident = Ident::new("__MONETA_FN_WRAPPER", Span::call_site());
+
     let args: Vec<_> = split_args(&mut outter);
 
     let options = parse_macro_input!(meta as syn::AttributeArgs);
@@ -104,15 +107,9 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         quote! { #vis }
     };
 
-    let cache_id = Ident::new(
-        &format!("__MONETA_FN_CACHE_{}", def_fn.sig.ident),
-        Span::call_site(),
-    );
+    let cache_id = Ident::new(&format!("__MONETA_FN_CACHE_{fn_name}"), Span::call_site());
 
-    let counter_id = Ident::new(
-        &format!("__MONETA_FN_COUNT_{}", def_fn.sig.ident),
-        Span::call_site(),
-    );
+    let counter_id = Ident::new(&format!("__MONETA_FN_COUNT_{fn_name}"), Span::call_site());
 
     let ret_ty = match def_fn.sig.output {
         ReturnType::Default => quote! { () },
@@ -138,7 +135,7 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
             )
         })
         .collect();
-    let name = outter.sig.ident.clone();
+    let name = def_fn.sig.ident.clone();
     let out_args: Vec<_> = args.iter().map(|(_, arg, _)| arg).collect();
     let def_args: Vec<_> = args.iter().map(|(name, _, _)| name).collect();
     let func_name = LitStr::new(&format!("{name}"), Span::call_site());
