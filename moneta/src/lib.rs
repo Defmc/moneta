@@ -4,8 +4,8 @@ use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
-    parse_macro_input, parse_quote, FnArg, Item, ItemFn, LitStr, Pat, PatType, ReturnType, Stmt,
-    Type,
+    parse_macro_input, parse_quote, FnArg, Item, ItemFn, LitStr, Pat, PatType, Path, ReturnType,
+    Stmt, Type,
 };
 
 fn split_args(def: &mut ItemFn) -> Vec<(Box<Pat>, Ident, Box<Type>)> {
@@ -28,26 +28,26 @@ fn split_args(def: &mut ItemFn) -> Vec<(Box<Pat>, Ident, Box<Type>)> {
 
 #[proc_macro]
 pub fn count(func: TokenStream) -> TokenStream {
-    let mut func: Vec<_> = parse_macro_input!(func as syn::Path)
-        .segments
-        .into_iter()
-        .map(|seg| seg.ident)
-        .collect();
-    let fn_id = func.pop().unwrap();
+    let (path, fn_id) = parse_path(func).unwrap();
     let id = Ident::new(&format!("__MONETA_FN_COUNT_{fn_id}"), Span::call_site());
-    TokenStream::from(quote! { unsafe { #(#func::)* #id } })
+    TokenStream::from(quote! { unsafe { #(#path::)* #id } })
 }
 
 #[proc_macro]
 pub fn get_cache(func: TokenStream) -> TokenStream {
-    let mut func: Vec<_> = parse_macro_input!(func as syn::Path)
+    let (path, fn_id) = parse_path(func).unwrap();
+    let id = Ident::new(&format!("__MONETA_FN_CACHE_{fn_id}"), Span::call_site());
+    TokenStream::from(quote! { #(#path::)* #id })
+}
+
+fn parse_path(input: TokenStream) -> syn::Result<(Vec<Ident>, Ident)> {
+    let mut input: Vec<_> = syn::parse::<Path>(input)?
         .segments
         .into_iter()
         .map(|seg| seg.ident)
         .collect();
-    let fn_id = func.pop().unwrap();
-    let id = Ident::new(&format!("__MONETA_FN_CACHE_{fn_id}"), Span::call_site());
-    TokenStream::from(quote! { #id })
+    let fn_id = input.pop().unwrap();
+    Ok((input, fn_id))
 }
 
 #[proc_macro_attribute]
