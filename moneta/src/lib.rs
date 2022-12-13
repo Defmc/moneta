@@ -8,14 +8,14 @@ use syn::{
     Stmt, Type,
 };
 
-fn split_args(def: &mut ItemFn) -> Vec<(Box<Pat>, Ident, Box<Type>)> {
+fn split_args(def: &mut ItemFn) -> Vec<(Pat, Ident, Type)> {
     let mut args = Vec::new();
 
     for (i, arg) in def.sig.inputs.iter_mut().enumerate() {
         let numbered = Ident::new(&format!("_arg{i}"), Span::call_site());
         match arg {
             FnArg::Typed(PatType { pat, ty, .. }) => {
-                args.push((pat.clone(), numbered.clone(), ty.clone()));
+                args.push((*pat.clone(), numbered.clone(), *ty.clone()));
                 *pat = parse_quote!(mut #numbered);
             }
             FnArg::Receiver(_) => {
@@ -26,6 +26,8 @@ fn split_args(def: &mut ItemFn) -> Vec<(Box<Pat>, Ident, Box<Type>)> {
     args
 }
 
+/// # Panics
+/// When no path is provided
 #[proc_macro]
 pub fn count(func: TokenStream) -> TokenStream {
     let (path, fn_id) = parse_path(func).unwrap();
@@ -33,6 +35,8 @@ pub fn count(func: TokenStream) -> TokenStream {
     TokenStream::from(quote! { unsafe { #(#path::)* #id } })
 }
 
+/// # Panics
+/// When no path is provided
 #[proc_macro]
 pub fn get_cache(func: TokenStream) -> TokenStream {
     let (path, fn_id) = parse_path(func).unwrap();
@@ -40,6 +44,8 @@ pub fn get_cache(func: TokenStream) -> TokenStream {
     TokenStream::from(quote! { #(#path::)* #id })
 }
 
+/// # Panics
+/// When no path is provided
 fn parse_path(input: TokenStream) -> syn::Result<(Vec<Ident>, Ident)> {
     let mut input: Vec<_> = syn::parse::<Path>(input)?
         .segments
@@ -66,7 +72,7 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         Span::call_site(),
     );
 
-    let cache_ret = match def_fn.sig.output {
+    let ret_ty = match def_fn.sig.output {
         ReturnType::Default => quote! { () },
         ReturnType::Type(_, ref ty) => {
             let ty = ty.clone();
@@ -78,16 +84,14 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         .iter()
         .map(|(name, _, _)| {
             LitStr::new(
-                &format!(
-                    "{}",
-                    if let Pat::Ident(ident) = name.as_ref() {
-                        let id = TokenStream::from(quote! { #ident });
-                        syn::parse::<Ident>(id).ok().map(|id| id.to_string())
-                    } else {
-                        None
-                    }
-                    .unwrap_or_else(|| "pat".to_string())
-                ),
+                if let Pat::Ident(ident) = name {
+                    let id = TokenStream::from(quote! { #ident });
+                    syn::parse::<Ident>(id).ok().map(|id| id.to_string())
+                } else {
+                    None
+                }
+                .unwrap_or_else(|| "pat".to_string())
+                .as_ref(),
                 Span::call_site(),
             )
         })
@@ -111,9 +115,9 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         &func_name,
         &start_id,
         args_lit_name.iter(),
-        def_args.iter().map(|p| *p),
+        def_args.iter().copied(),
     );
-    let cache_def = cache_def(&meta, &cache_id, &cache_ret);
+    let cache_def = cache_def(&meta, &cache_id, &ret_ty);
     let (cache_get, cache_set) = cache(
         meta.to_string() != "no_cache",
         &def_args,
@@ -175,7 +179,7 @@ fn trace<'a>(
     name_str: &LitStr,
     start_id: &Ident,
     args_names: impl Iterator<Item = &'a LitStr>,
-    def_args: impl Iterator<Item = &'a Box<Pat>>,
+    def_args: impl Iterator<Item = &'a Pat>,
 ) -> (TokenStream2, TokenStream2) {
     let in_trace = if cfg!(feature = "trace") {
         quote! {{
@@ -208,7 +212,7 @@ fn trace<'a>(
 
 fn cache(
     enabled: bool,
-    def_args: &Vec<&Box<Pat>>,
+    def_args: &Vec<&Pat>,
     out_args: &Vec<&Ident>,
     counter_id: &Ident,
     res_id: &Ident,
