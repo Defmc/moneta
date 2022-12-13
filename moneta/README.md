@@ -51,5 +51,5 @@ No. The counting or cache will just not be updated.
 
 ### TODO
 - [ ] private storage and count members
-- [ ] thread-safe counter
+- [x] thread-safe counter
 - [x] attribute parsing

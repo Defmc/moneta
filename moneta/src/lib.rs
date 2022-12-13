@@ -59,7 +59,7 @@ fn split_args(def: &mut ItemFn) -> Vec<(Pat, Ident, Type)> {
 pub fn count(func: TokenStream) -> TokenStream {
     let (path, fn_id) = parse_path(func).unwrap();
     let id = Ident::new(&format!("__MONETA_FN_COUNT_{fn_id}"), Span::call_site());
-    TokenStream::from(quote! { unsafe { #(#path::)* #id } })
+    TokenStream::from(quote! { #(#path::)* #id .load(std::sync::atomic::Ordering::SeqCst) })
 }
 
 /// # Panics
@@ -278,11 +278,11 @@ fn cache(
 fn counter(enabled: &Opt, counter_id: &Ident) -> (TokenStream2, TokenStream2) {
     let def = quote! {
         #[allow(non_upper_snake_case)]
-        pub static mut #counter_id: usize = 0;
+        pub static #counter_id: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     };
 
     let inc = if enabled.is_enabled(cfg!(feature = "count")) {
-        quote! { unsafe { #counter_id += 1 }; }
+        quote! { #counter_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst); }
     } else {
         quote! { ; }
     };
