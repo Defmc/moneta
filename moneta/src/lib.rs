@@ -1,5 +1,6 @@
 extern crate proc_macro;
 
+use darling::FromMeta;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
@@ -7,6 +8,32 @@ use syn::{
     parse_macro_input, parse_quote, FnArg, Item, ItemFn, LitStr, Pat, PatType, Path, ReturnType,
     Stmt, Type,
 };
+
+#[derive(Debug, FromMeta)]
+struct Options {
+    #[darling(default)]
+    pub trace: Opt,
+    #[darling(default)]
+    pub time: Opt,
+    #[darling(default)]
+    pub cache: Opt,
+    #[darling(default)]
+    pub count: Opt,
+}
+
+#[derive(Debug, Default, FromMeta, PartialEq, Eq)]
+enum Opt {
+    Force,
+    #[default]
+    Default,
+    Forbid,
+}
+
+impl Opt {
+    pub fn is_enabled(&self, cfg: bool) -> bool {
+        self == &Opt::Force || (self == &Opt::Default && cfg)
+    }
+}
 
 fn split_args(def: &mut ItemFn) -> Vec<(Pat, Ident, Type)> {
     let mut args = Vec::new();
@@ -62,6 +89,12 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     let mut def_fn = outter.clone();
     let args: Vec<_> = split_args(&mut outter);
 
+    let options = parse_macro_input!(meta as syn::AttributeArgs);
+    let options = match Options::from_list(&options) {
+        Ok(v) => v,
+        Err(e) => return TokenStream::from(e.write_errors()),
+    };
+
     let cache_id = Ident::new(
         &format!("__MONETA_FN_CACHE_{}", def_fn.sig.ident),
         Span::call_site(),
@@ -103,7 +136,7 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     let res_id = Ident::new("res", Span::call_site());
     let start_id = Ident::new("start", Span::call_site());
 
-    let get_ret = if cfg!(feature = "cache") {
+    let get_ret = if options.cache.is_enabled(cfg!(feature = "cache")) {
         quote! {
             let #res_id = #name (#(#out_args),*);
         }
@@ -112,20 +145,25 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let (trace_in, trace_out) = trace(
+        options.trace.is_enabled(cfg!(feature = "trace")),
+        options.time.is_enabled(cfg!(feature = "time")),
         &func_name,
         &start_id,
         args_lit_name.iter(),
         def_args.iter().copied(),
     );
-    let cache_def = cache_def(&meta, &cache_id, &ret_ty);
+    let cache_def = cache_def(&options.cache, &cache_id, &ret_ty);
     let (cache_get, cache_set) = cache(
-        meta.to_string() != "no_cache",
+        options.cache.is_enabled(cfg!(feature = "cache")),
         &def_args,
         &out_args,
         &cache_id,
         &res_id,
     );
-    let (counter_def, counter_inc) = counter(&counter_id);
+    let (counter_def, counter_inc) = counter(
+        options.count.is_enabled(cfg!(feature = "count")),
+        &counter_id,
+    );
 
     let pre_injection = quote! {{
         #counter_inc
@@ -161,8 +199,8 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     TokenStream::from(code)
 }
 
-fn cache_def(meta: &TokenStream, cache_id: &Ident, cache_ret: &TokenStream2) -> TokenStream2 {
-    if meta.to_string() != "no_cache" && cfg!(feature = "cache") {
+fn cache_def(enable: &Opt, cache_id: &Ident, cache_ret: &TokenStream2) -> TokenStream2 {
+    if enable == &Opt::Force || (enable == &Opt::Default && cfg!(feature = "cache")) {
         quote! {
             #[allow(non_upper_snake_case)]
             lazy_static::lazy_static! {
@@ -176,12 +214,14 @@ fn cache_def(meta: &TokenStream, cache_id: &Ident, cache_ret: &TokenStream2) -> 
 }
 
 fn trace<'a>(
+    trace_enabled: bool,
+    time_enabled: bool,
     name_str: &LitStr,
     start_id: &Ident,
     args_names: impl Iterator<Item = &'a LitStr>,
     def_args: impl Iterator<Item = &'a Pat>,
 ) -> (TokenStream2, TokenStream2) {
-    let in_trace = if cfg!(feature = "trace") {
+    let in_trace = if trace_enabled {
         quote! {{
             let args_fmt: String = [
                 #(#args_names,)*
@@ -195,11 +235,11 @@ fn trace<'a>(
         quote! { ; }
     };
 
-    let out_trace = if cfg!(feature = "time") {
+    let out_trace = if time_enabled {
         quote! {
             println!("out {}: {:?}", #name_str, #start_id.elapsed());
         }
-    } else if cfg!(feature = "trace") {
+    } else if trace_enabled {
         quote! {
             println!("out {}", #name_str);
         }
@@ -219,7 +259,7 @@ fn cache(
 ) -> (TokenStream2, TokenStream2) {
     let debug_fmt = LitStr::new(&"{:?}".repeat(def_args.len()), Span::call_site());
 
-    let get_cache = if cfg!(feature = "cache") && enabled {
+    let get_cache = if enabled {
         quote! {{
             let values_fmt = format!(#debug_fmt, #(#def_args),*);
             if let Ok(reader) = #counter_id.read() {
@@ -232,7 +272,7 @@ fn cache(
         quote! { ; }
     };
 
-    let set_cache = if cfg!(feature = "cache") && enabled {
+    let set_cache = if enabled {
         quote! {{
             let values_fmt = format!(#debug_fmt, #(#out_args),*);
             if let Ok(mut writer) = #counter_id.write() {
@@ -245,13 +285,13 @@ fn cache(
     (get_cache, set_cache)
 }
 
-fn counter(counter_id: &Ident) -> (TokenStream2, TokenStream2) {
+fn counter(enabled: bool, counter_id: &Ident) -> (TokenStream2, TokenStream2) {
     let def = quote! {
         #[allow(non_upper_snake_case)]
         pub static mut #counter_id: usize = 0;
     };
 
-    let inc = if cfg!(feature = "count") {
+    let inc = if enabled {
         quote! { unsafe { #counter_id += 1 }; }
     } else {
         quote! { ; }

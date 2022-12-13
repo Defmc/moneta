@@ -1,6 +1,6 @@
 [package]
 name = "moneta_fn"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A set of macros to function profiling"
 repository = "https://github.com/Defmc/moneta"
@@ -9,6 +9,7 @@ categories = ["accessibility", "caching", "development-tools"]
 license = "MIT"
 
 [dependencies]
+darling = "0.14.2"
 hashbrown = { version = "0.13.1", optional = true }
 lazy_static = { version = "1.4.0", optional = true }
 proc-macro2 = "1.0.47"

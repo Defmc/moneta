@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn no_cache() {
-        #[moneta(no_cache)]
+        #[moneta(cache = "forbid")]
         pub fn foo(a: &mut u8) -> u8 {
             *a += 1;
             *a - 1
