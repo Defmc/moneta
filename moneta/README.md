@@ -31,7 +31,7 @@ fn foo<T: AsRef<str> + Debug>(lhs: T, rhs: T) -> T {
 ```
 
 ## I don't want `trace` in my release builds. How do I disable it?
-There isn't ~yet~ a good way to enable/disable specific features in different profiles. You'll need to set `default-features` to `false` and define which features you want. Ex:
+There isn't ~yet~ a good way to enable/disable specific features in different profiles. You'll need to set `default-features` to `false` and define which features you want. E.g:
 ```toml 
 [dependencies]
 moneta_fn = { version = "*", default-features = false, features = ["cache", "count", "time"] }

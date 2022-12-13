@@ -140,6 +140,7 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
 fn cache_def(meta: &TokenStream, cache_id: &Ident, cache_ret: &TokenStream2) -> TokenStream2 {
     if meta.to_string() != "no_cache" && cfg!(feature = "cache") {
         quote! {
+            #[allow(non_upper_snake_case)]
             lazy_static::lazy_static! {
                 pub static ref #cache_id: std::sync::RwLock<hashbrown::HashMap<String, #cache_ret>> =
                     std::sync::RwLock::new(hashbrown::HashMap::new());
@@ -222,6 +223,7 @@ fn cache(
 
 fn counter(counter_id: &Ident) -> (TokenStream2, TokenStream2) {
     let def = quote! {
+        #[allow(non_upper_snake_case)]
         pub static mut #counter_id: usize = 0;
     };
 
