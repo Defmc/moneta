@@ -8,6 +8,15 @@ Contains some convenient macros to analyze function execution, like `count` to k
 | `count` | Makes available a macro `count!` to get how many times a function was called | None |
 | `trace` | Prints when entering/exiting in a tagged function and its arguments | None |
 | `cache` | Implements memoization for a tagged function | `lazy_static` and `hashbrown` |
+| `visible` | Changes the cache storage and counter visibility | None |
+
+Each feature can be forbided, forced or setted to global config (setted by features) in the attribute declaration. E.g:
+```rust 
+#[moneta_fn::moneta(cache = "forbid", visible = "forbid", count = "force")]
+fn foo(a: u8) -> u8 {
+    unimplemented!()
+}
+```
 
 ## Dependencies
 Just `cache` requires that both `lazy_static` and `hashbrown` are enabled in the target module. When enabled, it also requires that all parameters implement the `Debug` trait and `Clone` for the return type.
