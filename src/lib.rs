@@ -1,6 +1,7 @@
 use moneta_fn::moneta;
 
 #[moneta]
+#[must_use]
 pub fn fibonacci(n: u128) -> u128 {
     match n {
         0 | 1 => 1,
@@ -9,6 +10,7 @@ pub fn fibonacci(n: u128) -> u128 {
 }
 
 #[moneta]
+#[must_use]
 pub fn tribonacci(n: u128) -> u128 {
     match n {
         0 => 0,
@@ -26,7 +28,7 @@ mod tests {
     fn multiple_call() {
         #[moneta]
         pub fn foo() {
-            fns::baz()
+            fns::baz();
         }
 
         mod fns {

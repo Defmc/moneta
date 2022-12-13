@@ -31,7 +31,7 @@ enum Opt {
 
 impl Opt {
     pub fn is_enabled(&self, cfg: bool) -> bool {
-        self == &Opt::Force || (self == &Opt::Default && cfg)
+        self == &Self::Force || (self == &Self::Default && cfg)
     }
 }
 
