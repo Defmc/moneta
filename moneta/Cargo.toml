@@ -24,3 +24,6 @@ cache = ["lazy_static", "hashbrown"]
 
 [lib]
 proc-macro = true
+
+[package.metadata.cargo-udeps.ignore]
+normal = ["lazy_static", "hashbrown"]
