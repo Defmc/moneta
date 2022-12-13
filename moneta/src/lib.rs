@@ -89,6 +89,7 @@ fn parse_path(input: TokenStream) -> syn::Result<(Vec<Ident>, Ident)> {
 pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     let mut outter = parse_macro_input!(input as ItemFn);
     let mut def_fn = outter.clone();
+    outter.sig.constness = None;
     let fn_name = def_fn.sig.ident;
     def_fn.sig.ident = Ident::new("__MONETA_FN_WRAPPER", Span::call_site());
 

@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn cached() {
         #[moneta]
-        pub fn pow3(x: u128) -> u128 {
+        pub const fn pow3(x: u128) -> u128 {
             x * x * x
         }
 
