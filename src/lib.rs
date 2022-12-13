@@ -1,28 +1,26 @@
-#![feature(test)]
+use moneta_fn::moneta;
+
+#[moneta]
+pub fn fibonacci(n: u128) -> u128 {
+    match n {
+        0 | 1 => 1,
+        _ => (1..=2).map(|o| fibonacci(n - o)).sum(),
+    }
+}
+
+#[moneta]
+pub fn tribonacci(n: u128) -> u128 {
+    match n {
+        0 => 0,
+        1 | 2 => 1,
+        3 => 2,
+        _ => (1..=3).map(|o| tribonacci(n - o)).sum(),
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use moneta_fn::{count, get_cache, moneta};
-    extern crate test;
-    use test::{black_box, Bencher};
-
-    #[moneta]
-    fn fibonacci(n: u128) -> u128 {
-        match n {
-            0 | 1 => 1,
-            _ => (1..=2).map(|o| fibonacci(n - o)).sum(),
-        }
-    }
-
-    #[moneta]
-    fn tribonacci(n: u128) -> u128 {
-        match n {
-            0 => 0,
-            1 | 2 => 1,
-            3 => 2,
-            _ => (1..=3).map(|o| tribonacci(n - o)).sum(),
-        }
-    }
 
     #[test]
     fn multiple_call() {
@@ -40,16 +38,6 @@ mod tests {
         fns::baz();
         assert_eq!(count!(foo), 1);
         assert_eq!(count!(fns::baz), 2);
-    }
-
-    #[bench]
-    fn fibonacci_50(b: &mut Bencher) {
-        b.iter(|| assert_eq!(black_box(fibonacci(10)), 89))
-    }
-
-    #[bench]
-    fn tribonacci_10(b: &mut Bencher) {
-        b.iter(|| assert_eq!(black_box(tribonacci(10)), 149))
     }
 
     #[test]
