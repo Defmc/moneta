@@ -10,7 +10,7 @@ Contains some convenient macros to analyze function execution, like `count` to k
 | `cache` | Implements memoization for a tagged function | `lazy_static` and `hashbrown` |
 
 ## Dependencies
-Just `cache` requires that both `lazy_static` and `hashbrown` are enabled in the target module. It also requires that all parameters implement the `Debug` trait and `Clone` for the return type.
+Just `cache` requires that both `lazy_static` and `hashbrown` are enabled in the target module. When enabled, it also requires that all parameters implement the `Debug` trait and `Clone` for the return type.
 
 ## Wait... Why `Debug` for parameters and not `Clone`?
 Consider these scenarios:
@@ -30,19 +30,26 @@ fn foo<T: AsRef<str> + Debug>(lhs: T, rhs: T) -> T {
 }
 ```
 
-## I don't want `trace` in my release builds. How do I disable it?
+## I don't want `trace`/`count`/`cache` in my release builds. How do I disable it?
 There isn't ~yet~ a good way to enable/disable specific features in different profiles. You'll need to set `default-features` to `false` and define which features you want. E.g:
 ```toml 
 [dependencies]
 moneta_fn = { version = "*", default-features = false, features = ["cache", "count", "time"] }
 ```
 
-## Will `count!` calls break when the `count` feature is disabled?
-No. It'll just not be updated.
+## How do I enable/disable `trace`/`count`/`cache` for just one function?
+Set `trace`/`count`/`cache` as `force`/`forbid`
+```rust
+#[moneta_fn::moneta(cache = "forbid")] // Will not update cache storage
+fn foo(a: u8) -> u8 {
+    unimplemented!()
+}
+```
 
-### And `cache`
-Just when there is a call for `get_cache`.
+## Will `count!`/`get_cache!` calls break when the `count`/`cache` feature is disabled?
+No. The counting or cache will just not be updated.
 
 ### TODO
 - [ ] private storage and count members
 - [ ] thread-safe counter
+- [x] attribute parsing

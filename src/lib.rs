@@ -50,8 +50,7 @@ mod tests {
 
         let mut a = 0;
         assert_eq!(foo(&mut a), 0);
-        a = 0;
-        assert_eq!(foo(&mut a), 0);
+        assert!(get_cache!(foo).read().unwrap().is_empty());
     }
 
     #[test]
