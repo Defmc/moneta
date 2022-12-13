@@ -1,0 +1,14 @@
+[package]
+name = "moneta_bin"
+version = "0.1.0"
+edition = "2021"
+description = "A set of macros to function profiling"
+repository = "https://github.com/Defmc/moneta"
+keywords = ["macro", "logging", "profiling"]
+categories = ["accessibility", "caching", "development-tools"]
+license = "MIT"
+
+[dependencies]
+hashbrown = "0.13.1"
+lazy_static = "1.4.0"
+moneta = { path = "moneta", features = ["count", "cache"]}

@@ -1,0 +1,48 @@
+## A set of macros to function profiling
+Contains some convenient macros to analyze function execution, like `count` to know how many times a function was called, `trace` to log when entering/exiting from a function and what are its arguments, and `cache` for pure functions cache.
+
+
+## Features
+| Feature | Description | Additional dependencies |
+| ------- | ----------- | ----------------------- |
+| `count` | Makes available a macro `count!` to get how many times a function was called | None |
+| `trace` | Prints when entering/exiting in a tagged function and its arguments | None |
+| `cache` | Implements memoization for a tagged function | `lazy_static` and `hashbrown` |
+
+## Dependencies
+Just `cache` requires that both `lazy_static` and `hashbrown` are enabled in the target module. It also requires that all parameters implement the `Debug` trait and `Clone` for the return type.
+
+## Wait... Why `Debug` for parameters and not `Clone`?
+Consider these scenarios:
+```rust
+#[moneta::moneta]
+fn foo<'a, T>(lhs: &'a T, rhs: &'a T) -> T {
+    unimplemented!()
+}
+```
+It's hard to create cache storage with generic keys and lifetimes, once it can't be parsed in an equivalent format for a global `RwLock`.
+
+Furthermore, it allows some optimizations for liked types:
+```rust
+#[moneta::moneta]
+fn foo<T: AsRef<str> + Debug>(lhs: T, rhs: T) -> T {
+    unimplemented!()
+}
+```
+
+## I don't want `trace` in my release builds. How do I disable it?
+There isn't ~yet~ a good way to enable/disable specific features in different profiles. You'll need to set `default-features` to `false` and define which features you want. Ex:
+```toml 
+[dependencies]
+moneta_fn = { version = "*", default-features = false, features = ["cache", "count", "time"] }
+```
+
+## Will `count!` calls break when the `count` feature is disabled?
+No. It'll just not be updated.
+
+### And `cache`
+Just when there is a call for `get_cache`.
+
+### TODO
+- [ ] private storage and count members
+- [ ] thread-safe counter
