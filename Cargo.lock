@@ -35,7 +35,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "moneta"
+name = "moneta_bin"
+version = "0.1.0"
+dependencies = [
+ "hashbrown",
+ "lazy_static",
+ "moneta_fn",
+]
+
+[[package]]
+name = "moneta_fn"
 version = "0.1.0"
 dependencies = [
  "hashbrown",
@@ -43,15 +52,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "moneta_bin"
-version = "0.1.0"
-dependencies = [
- "hashbrown",
- "lazy_static",
- "moneta",
 ]
 
 [[package]]

@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use moneta::{count, get_cache, moneta};
+    use moneta_fn::{count, get_cache, moneta};
     extern crate test;
     use test::{black_box, Bencher};
 
@@ -32,7 +32,7 @@ mod tests {
         }
 
         mod fns {
-            #[moneta::moneta]
+            #[moneta_fn::moneta]
             pub fn baz() {}
         }
 

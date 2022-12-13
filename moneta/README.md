@@ -15,7 +15,7 @@ Just `cache` requires that both `lazy_static` and `hashbrown` are enabled in the
 ## Wait... Why `Debug` for parameters and not `Clone`?
 Consider these scenarios:
 ```rust
-#[moneta::moneta]
+#[moneta_fn::moneta]
 fn foo<'a, T>(lhs: &'a T, rhs: &'a T) -> T {
     unimplemented!()
 }
@@ -24,7 +24,7 @@ It's hard to create cache storage with generic keys and lifetimes, once it can't
 
 Furthermore, it allows some optimizations for liked types:
 ```rust
-#[moneta::moneta]
+#[moneta_fn::moneta]
 fn foo<T: AsRef<str> + Debug>(lhs: T, rhs: T) -> T {
     unimplemented!()
 }

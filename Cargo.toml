@@ -11,4 +11,4 @@ license = "MIT"
 [dependencies]
 hashbrown = "0.13.1"
 lazy_static = "1.4.0"
-moneta = { path = "moneta", features = ["count", "cache"]}
+moneta_fn = { path = "moneta", features = ["count", "cache"]}
