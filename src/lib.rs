@@ -33,7 +33,7 @@ mod tests {
 
         mod fns {
             #[moneta_fn::moneta]
-            pub fn baz() {}
+            pub const fn baz() {}
         }
 
         foo();
