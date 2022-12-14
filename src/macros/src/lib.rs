@@ -58,19 +58,37 @@ fn split_args(def: &mut ItemFn) -> Vec<(Pat, Ident, Type)> {
 /// # Panics
 /// When no path is provided
 #[proc_macro]
-pub fn count(func: TokenStream) -> TokenStream {
+pub fn get_cache(func: TokenStream) -> TokenStream {
     let (path, fn_id) = parse_path(func).unwrap();
-    let id = Ident::new(&format!("__MONETA_FN_COUNT_{fn_id}"), Span::call_site());
-    TokenStream::from(quote! { #(#path::)* #id .load(std::sync::atomic::Ordering::SeqCst) })
+    let id = Ident::new(&format!("__MONETA_FN_CACHE_{fn_id}"), Span::call_site());
+    quote! { #(#path::)* #id }.into()
 }
 
 /// # Panics
 /// When no path is provided
 #[proc_macro]
-pub fn get_cache(func: TokenStream) -> TokenStream {
+pub fn count(func: TokenStream) -> TokenStream {
+    let counter = get_counter(func);
+    let counter = parse_macro_input!(counter as Path);
+    quote! { #counter .load(std::sync::atomic::Ordering::SeqCst) }.into()
+}
+
+/// # Panics
+/// When no path is provided
+#[proc_macro]
+pub fn reset_count(func: TokenStream) -> TokenStream {
+    let counter = get_counter(func);
+    let counter = parse_macro_input!(counter as Path);
+    quote! { #counter .store(0, std::sync::atomic::Ordering::SeqCst) }.into()
+}
+
+/// # Panics
+/// When no path is provided
+#[proc_macro]
+pub fn get_counter(func: TokenStream) -> TokenStream {
     let (path, fn_id) = parse_path(func).unwrap();
-    let id = Ident::new(&format!("__MONETA_FN_CACHE_{fn_id}"), Span::call_site());
-    TokenStream::from(quote! { #(#path::)* #id })
+    let id = Ident::new(&format!("__MONETA_FN_COUNT_{fn_id}"), Span::call_site());
+    quote! { #(#path::)* #id }.into()
 }
 
 /// # Panics
@@ -94,7 +112,6 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     def_fn.sig.ident = Ident::new("__MONETA_FN_WRAPPER", Span::call_site());
 
     let args: Vec<_> = split_args(&mut outter);
-
     let options = parse_macro_input!(meta as syn::AttributeArgs);
     let options = match Options::from_list(&options) {
         Ok(v) => v,

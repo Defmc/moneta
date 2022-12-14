@@ -11,9 +11,13 @@ Contains some convenient macros to analyze function execution, like `count` to k
 | `time`  | Prints the elapsed time inside a function | None |
 | `visible` | Changes the cache storage and counter visibility | None |
 
-Each feature can be forbided, forced or setted to global config (setted by features) in the attribute declaration. E.g:
+Each feature can be forbided, forced or setted to default (which is setted using features) in the attribute declaration. E.g:
+
 ```rust 
-#[moneta_fn::moneta(cache = "forbid", visible = "forbid", count = "force")]
+// `cache`, `visible` will not be implemented
+// `count` will obligatory be implemented
+// `time` and `trace` will be implemented if the feature `time` is enable
+#[moneta_fn::moneta(cache = "forbid", visible = "forbid", count = "force", time = "default")]
 fn foo(a: u8) -> u8 {
     unimplemented!()
 }
@@ -71,5 +75,33 @@ fn foo(a: u8) -> u8 {
 }
 ```
 
-## Will `count!`/`get_cache!` calls break when the `count`/`cache` feature is disabled?
+## Macros
+There are macros to manage implementation variables:
+| Macro | Outter feature | Description |
+| ----- | -------------- | ----------- |
+| `count` | `count` | Return an `usize` containing how many times an function was called |
+| `get_counter` | `count` | Return the `std::sync::AtomicUsize` counter for the respective function |
+| `reset_count` | `count` | Set the function counting to 0 |
+| `get_cache` | `cache` | Return the `once_cell::Lazy<std::sync::RwLock<hashbrown::HashMap<String, T>>>` cache storage, where `T` is the function's return type |
+
+All of these macros requires an argument containing the function's global path. E.g:
+
+```rust 
+#[moneta_fn::moneta]
+fn foo() {
+    unimplemented!()
+}
+
+pub mod bar {
+    #[moneta_fn:moneta]
+    pub fn baz() {
+        unimplemented!()
+    }
+}
+
+assert!(get_cache(foo).read().unwrap().is_empty())
+assert_eq!(count!(bar::baz), 0)
+```
+
+## Will macro calls break when the outter feature be disabled?
 No. The counting or cache will just not be updated.

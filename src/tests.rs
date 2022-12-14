@@ -1,4 +1,4 @@
-use moneta_fn::{count, get_cache, moneta};
+use moneta_fn::{count, get_cache, moneta, reset_count};
 
 #[test]
 fn multiple_call() {
@@ -40,4 +40,17 @@ fn cached() {
 
     assert_eq!((0..10).map(pow3).sum::<u128>(), 2025);
     assert_eq!(get_cache!(pow3).read().unwrap().len(), 10);
+}
+
+#[test]
+fn reset_count() {
+    #[moneta]
+    pub const fn pow2(x: usize) -> usize {
+        x * x
+    }
+
+    assert_eq!(pow2(2), 4);
+    assert_eq!(count!(pow2), 1);
+    reset_count!(pow2);
+    assert_eq!(count!(pow2), 0);
 }
