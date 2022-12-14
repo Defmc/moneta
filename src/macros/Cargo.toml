@@ -1,0 +1,20 @@
+[package]
+name = "macros"
+version = "0.2.3"
+edition = "2021"
+
+[dependencies]
+darling = "0.14.2"
+proc-macro2 = "1.0.47"
+quote = "1.0.21"
+syn = { version = "1.0.105", features = ["full", "fold"] }
+
+[features]
+count = []
+trace = []
+time = []
+visible = []
+cache = []
+
+[lib]
+proc-macro = true

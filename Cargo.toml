@@ -1,6 +1,6 @@
 [package]
-name = "moneta_bin"
-version = "0.1.0"
+name = "moneta_fn"
+version = "0.2.3"
 edition = "2021"
 description = "A set of macros to function profiling"
 repository = "https://github.com/Defmc/moneta"
@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 hashbrown = "0.13.1"
 lazy_static = "1.4.0"
-moneta_fn = { path = "moneta", default-features = false, features = ["count", "cache"]}
+macros = { path = "src/macros" }
 
 [dev-dependencies]
 bencher = "0.1.5"
@@ -20,3 +20,14 @@ bencher = "0.1.5"
 name = "benches"
 harness = false
 path = "src/benches.rs"
+
+[features]
+default = ["trace", "count", "time", "cache"]
+count = ["macros/count"]
+trace = ["macros/trace"]
+time = ["macros/time"]
+visible = ["macros/visible"]
+cache = ["macros/cache"]
+
+[workspace]
+members = ["src/macros"]
