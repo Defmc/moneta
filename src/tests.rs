@@ -8,7 +8,7 @@ fn multiple_call() {
     }
 
     mod fns {
-        #[macros::moneta]
+        #[moneta_fn::moneta]
         pub const fn baz() {}
     }
 

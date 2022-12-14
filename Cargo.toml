@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 hashbrown = "0.13.1"
 lazy_static = "1.4.0"
-macros = { path = "src/macros", version = "0.2.3" }
+moneta_fn_macros = { path = "src/macros", version = "0.2.3", default-features = false }
 
 [dev-dependencies]
 bencher = "0.1.5"
@@ -23,11 +23,11 @@ path = "src/benches.rs"
 
 [features]
 default = ["trace", "count", "time", "cache"]
-count = ["macros/count"]
-trace = ["macros/trace"]
-time = ["macros/time"]
-visible = ["macros/visible"]
-cache = ["macros/cache"]
+count = ["moneta_fn_macros/count"]
+trace = ["moneta_fn_macros/trace"]
+time = ["moneta_fn_macros/time"]
+visible = ["moneta_fn_macros/visible"]
+cache = ["moneta_fn_macros/cache"]
 
 [workspace]
 members = ["src/macros"]

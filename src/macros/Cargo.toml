@@ -1,7 +1,12 @@
 [package]
-name = "macros"
+name = "moneta_fn_macros"
 version = "0.2.3"
 edition = "2021"
+description = "A set of macros to function profiling"
+repository = "https://github.com/Defmc/moneta"
+keywords = ["macro", "logging", "profiling"]
+categories = ["accessibility", "caching", "development-tools"]
+license = "MIT"
 
 [dependencies]
 darling = "0.14.2"
