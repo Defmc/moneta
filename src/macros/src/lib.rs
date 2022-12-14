@@ -194,10 +194,8 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
 fn cache_def(cache_id: &Ident, vis: &TokenStream2, cache_ret: &TokenStream2) -> TokenStream2 {
     quote! {
         #[allow(non_upper_snake_case)]
-        ::moneta_fn::lazy_static::lazy_static! {
-            #vis static ref #cache_id: std::sync::RwLock<::moneta_fn::hashbrown::HashMap<String, #cache_ret>> =
-                std::sync::RwLock::new(::moneta_fn::hashbrown::HashMap::new());
-        }
+        #vis static #cache_id: ::moneta_fn::once_cell::sync::Lazy<std::sync::RwLock<::moneta_fn::hashbrown::HashMap<String, #cache_ret>>> =
+            ::moneta_fn::once_cell::sync::Lazy::new(|| std::sync::RwLock::new(::moneta_fn::hashbrown::HashMap::new()));
     }
 }
 
