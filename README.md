@@ -8,6 +8,7 @@ Contains some convenient macros to analyze function execution, like `count` to k
 | `count` | Makes available a macro `count!` to get how many times a function was called | None |
 | `trace` | Prints when entering/exiting in a tagged function and its arguments | None |
 | `cache` | Implements memoization for a tagged function | `lazy_static` and `hashbrown` |
+| `time`  | Prints the elapsed time inside a function | None |
 | `visible` | Changes the cache storage and counter visibility | None |
 
 Each feature can be forbided, forced or setted to global config (setted by features) in the attribute declaration. E.g:

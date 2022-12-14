@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 hashbrown = "0.13.1"
 lazy_static = "1.4.0"
-macros = { path = "src/macros" }
+macros = { path = "src/macros", version = "0.2.3" }
 
 [dev-dependencies]
 bencher = "0.1.5"
