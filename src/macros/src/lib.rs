@@ -172,8 +172,7 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let (trace_in, trace_out) = trace(
-        &options.trace,
-        &options.time,
+        (&options.trace, &options.time),
         &func_name,
         &start_id,
         &depth_id,
@@ -224,8 +223,7 @@ fn cache_def(cache_id: &Ident, vis: &TokenStream2, cache_ret: &TokenStream2) -> 
 }
 
 fn trace<'a>(
-    trace_enabled: &Opt,
-    time_enabled: &Opt,
+    (trace, time): (&Opt, &Opt),
     name_str: &LitStr,
     start_id: &Ident,
     depth_id: &Ident,
@@ -233,7 +231,7 @@ fn trace<'a>(
     args_names: impl Iterator<Item = &'a LitStr>,
     out_args: impl Iterator<Item = &'a Ident>,
 ) -> (TokenStream2, TokenStream2) {
-    let trace_enabled = trace_enabled.is_enabled(cfg!(feature = "trace"));
+    let trace_enabled = trace.is_enabled(cfg!(feature = "trace"));
 
     let in_trace = if trace_enabled {
         quote! {{
@@ -260,7 +258,7 @@ fn trace<'a>(
         quote! { ; }
     };
 
-    let out_trace = if time_enabled.is_enabled(cfg!(feature = "time")) {
+    let out_trace = if time.is_enabled(cfg!(feature = "time")) {
         quote! {{
             #sub_depth
             println!("{}out {}: {:?}",
