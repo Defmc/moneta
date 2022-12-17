@@ -21,6 +21,8 @@ struct Options {
     pub count: Opt,
     #[darling(default)]
     pub visible: Opt,
+    #[darling(default)]
+    pub depth: Opt,
 }
 
 #[derive(Debug, Default, FromMeta, PartialEq, Eq)]
@@ -177,13 +179,14 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         out_args.iter().copied(),
     );
     let trace_out = trace_out(
-        (&options.trace, &options.time),
+        (&options.trace, &options.time, &options.depth),
         &func_name,
         &start_id,
         &prefix_id,
         &res_id,
     );
-    let (depth_def, prefix_def) = trace_prefixes(&options.trace, &depth_id, &prefix_id);
+    let (depth_def, prefix_def) =
+        trace_prefixes((&options.trace, &options.depth), &depth_id, &prefix_id);
     let let_values_fmt = let_values_fmt(&values_id, &out_args);
     let cache_def = cache_def(&cache_id, &vis, &ret_ty);
     let (cache_get, cache_set) = cache(&options.cache, &values_id, &cache_id, &res_id);
@@ -255,14 +258,15 @@ fn trace_in<'a>(
 }
 
 fn trace_out(
-    (trace, time): (&Opt, &Opt),
+    (trace, time, depth): (&Opt, &Opt, &Opt),
     name_str: &LitStr,
     start_id: &Ident,
     prefix_id: &Ident,
     res_id: &Ident,
 ) -> TokenStream2 {
     let trace_enabled = trace.is_enabled(cfg!(feature = "trace"));
-    let sub_depth = if trace_enabled {
+    let depth_enabled = depth.is_enabled(cfg!(feature = "depth"));
+    let sub_depth = if depth_enabled {
         quote! { ::moneta_fn::DEPTH.with(|d| { *d.borrow_mut() -= 1; }); }
     } else {
         quote! { ; }
@@ -291,23 +295,28 @@ fn trace_out(
 }
 
 fn trace_prefixes(
-    trace_enabled: &Opt,
+    (trace, depth): (&Opt, &Opt),
     depth_id: &Ident,
     prefix_id: &Ident,
 ) -> (TokenStream2, TokenStream2) {
-    if trace_enabled.is_enabled(cfg!(feature = "trace")) {
-        let depth = quote! {
+    let depth = if depth.is_enabled(cfg!(feature = "depth")) {
+        quote! {
             let #depth_id = ::moneta_fn::DEPTH.with(|d| "    ".repeat(*d.borrow()));
-        };
-        let prefix = quote! {
+        }
+    } else {
+        quote! { let #depth_id = String::new(); }
+    };
+
+    let prefix = if trace.is_enabled(cfg!(feature = "trace")) {
+        quote! {
             let #prefix_id = format!("{}[{:?}{}] ", depth,
                      std::thread::current().id(),
                      std::thread::current().name().map_or_else(|| String::new(), |n| format!(":{}", n)));
-        };
-        (depth, prefix)
+        }
     } else {
-        (quote! { ; }, quote! { let #prefix_id = String::new(); })
-    }
+        quote! { let #prefix_id = String::new(); }
+    };
+    (depth, prefix)
 }
 
 fn cache(

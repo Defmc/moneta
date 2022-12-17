@@ -9,14 +9,15 @@ Contains some convenient macros to analyze function execution, like `count` to k
 | `trace` | Prints when entering/exiting in a tagged function and its arguments | None |
 | `cache` | Implements memoization for a tagged function | `once_cell` and `hashbrown` |
 | `time`  | Prints the elapsed time inside a function | None |
+| `depth` | Add tabulation formatting according to the "function depth" | None |
 | `visible` | Changes the cache storage and counter visibility | None |
 
 Each feature can be forbided, forced or setted to default (which is setted using features) in the attribute declaration. E.g:
 
 ```rust 
-// `cache`, `visible` will not be implemented
+// `cache` and `visible` will not be implemented
 // `count` will obligatory be implemented
-// `time` and `trace` will be implemented if the feature `time` is enable
+// `time`/`depth` will be implemented if the feature `time`/`depth` is enable
 #[moneta_fn::moneta(cache = "forbid", visible = "forbid", count = "force", time = "default")]
 fn foo(a: u8) -> u8 {
     unimplemented!()
