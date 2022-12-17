@@ -171,7 +171,7 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let trace_in = trace_in(
-        &options.trace,
+        (&options.trace, &options.depth),
         &func_name,
         &depth_id,
         &prefix_id,
@@ -229,7 +229,7 @@ fn cache_def(cache_id: &Ident, vis: &TokenStream2, cache_ret: &TokenStream2) -> 
 }
 
 fn trace_in<'a>(
-    trace: &Opt,
+    (trace, depth): (&Opt, &Opt),
     name_str: &LitStr,
     depth_id: &Ident,
     prefix_id: &Ident,
@@ -237,9 +237,15 @@ fn trace_in<'a>(
     out_args: impl Iterator<Item = &'a Ident>,
 ) -> TokenStream2 {
     let trace_enabled = trace.is_enabled(cfg!(feature = "trace"));
+    let inc_depth = if depth.is_enabled(cfg!(feature = "depth")) {
+        quote! { ::moneta_fn::DEPTH.with(|d| *d.borrow_mut() += 1); }
+    } else {
+        quote! { ; }
+    };
+
     if trace_enabled {
         quote! {{
-            ::moneta_fn::DEPTH.with(|d| *d.borrow_mut() += 1);
+            #inc_depth
             let args_fmt: String = [
                 #(#args_names,)*
             ].into_iter()
@@ -253,7 +259,7 @@ fn trace_in<'a>(
             );
         }}
     } else {
-        quote! { ; }
+        quote! { #inc_depth }
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "moneta_fn"
-version = "0.2.10"
+version = "0.2.11"
 edition = "2021"
 description = "A set of macros to function profiling"
 repository = "https://github.com/Defmc/moneta"
@@ -11,7 +11,7 @@ license = "MIT"
 [dependencies]
 hashbrown = "0.13.1"
 once_cell = "1.16.0"
-moneta_fn_macros = { path = "src/macros", version = "0.2.10", default-features = false }
+moneta_fn_macros = { path = "src/macros", version = "0.2.11", default-features = false }
 
 [dev-dependencies]
 bencher = "0.1.5"
