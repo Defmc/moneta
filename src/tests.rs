@@ -2,13 +2,13 @@ use moneta_fn::{count, get_cache, moneta, reset_count};
 
 #[test]
 fn multiple_call() {
-    #[moneta]
+    #[moneta(depth = "force")]
     pub fn foo() {
         fns::baz();
     }
 
     mod fns {
-        #[moneta_fn::moneta]
+        #[moneta_fn::moneta(depth = "force")]
         pub const fn baz() {}
     }
 
