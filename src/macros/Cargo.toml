@@ -1,6 +1,6 @@
 [package]
 name = "moneta_fn_macros"
-version = "0.2.8"
+version = "0.2.9"
 edition = "2021"
 description = "A set of macros to function profiling"
 repository = "https://github.com/Defmc/moneta"
