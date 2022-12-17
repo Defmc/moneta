@@ -126,7 +126,6 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let cache_id = Ident::new(&format!("__MONETA_FN_CACHE_{fn_name}"), Span::call_site());
-
     let counter_id = Ident::new(&format!("__MONETA_FN_COUNT_{fn_name}"), Span::call_site());
 
     let ret_ty = match def_fn.sig.output {
@@ -164,22 +163,25 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     let prefix_id = Ident::new("prefix", Span::call_site());
 
     let get_ret = if options.cache.is_enabled(cfg!(feature = "cache")) {
-        quote! {
-            let #res_id = #wrapper_name (#(#out_args),*);
-        }
+        quote! { let #res_id = #wrapper_name (#(#out_args),*); }
     } else {
         quote! { let #res_id = #wrapper_name (#(#out_args),*); }
     };
 
-    let (trace_in, trace_out) = trace(
+    let trace_in = trace_in(
+        &options.trace,
+        &func_name,
+        &depth_id,
+        &prefix_id,
+        args_lit_name.iter(),
+        out_args.iter().copied(),
+    );
+    let trace_out = trace_out(
         (&options.trace, &options.time),
         &func_name,
         &start_id,
-        &depth_id,
         &prefix_id,
         &res_id,
-        args_lit_name.iter(),
-        out_args.iter().copied(),
     );
     let (depth_def, prefix_def) = trace_prefixes(&options.trace, &depth_id, &prefix_id);
     let let_values_fmt = let_values_fmt(&values_id, &out_args);
@@ -223,19 +225,16 @@ fn cache_def(cache_id: &Ident, vis: &TokenStream2, cache_ret: &TokenStream2) -> 
     }
 }
 
-fn trace<'a>(
-    (trace, time): (&Opt, &Opt),
+fn trace_in<'a>(
+    trace: &Opt,
     name_str: &LitStr,
-    start_id: &Ident,
     depth_id: &Ident,
     prefix_id: &Ident,
-    res_id: &Ident,
     args_names: impl Iterator<Item = &'a LitStr>,
     out_args: impl Iterator<Item = &'a Ident>,
-) -> (TokenStream2, TokenStream2) {
+) -> TokenStream2 {
     let trace_enabled = trace.is_enabled(cfg!(feature = "trace"));
-
-    let in_trace = if trace_enabled {
+    if trace_enabled {
         quote! {{
             ::moneta_fn::DEPTH.with(|d| *d.borrow_mut() += 1);
             let args_fmt: String = [
@@ -252,15 +251,24 @@ fn trace<'a>(
         }}
     } else {
         quote! { ; }
-    };
+    }
+}
 
+fn trace_out(
+    (trace, time): (&Opt, &Opt),
+    name_str: &LitStr,
+    start_id: &Ident,
+    prefix_id: &Ident,
+    res_id: &Ident,
+) -> TokenStream2 {
+    let trace_enabled = trace.is_enabled(cfg!(feature = "trace"));
     let sub_depth = if trace_enabled {
         quote! { ::moneta_fn::DEPTH.with(|d| { *d.borrow_mut() -= 1; }); }
     } else {
         quote! { ; }
     };
 
-    let out_trace = if time.is_enabled(cfg!(feature = "time")) {
+    if time.is_enabled(cfg!(feature = "time")) {
         quote! {{
             #sub_depth
             println!("{}out {} ({:?}): {:?}",
@@ -279,9 +287,7 @@ fn trace<'a>(
         }}
     } else {
         quote! { ; }
-    };
-
-    (in_trace, out_trace)
+    }
 }
 
 fn trace_prefixes(
