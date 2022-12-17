@@ -160,6 +160,8 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     let res_id = Ident::new("res", Span::call_site());
     let start_id = Ident::new("start", Span::call_site());
     let values_id = Ident::new("values_fmt", Span::call_site());
+    let depth_id = Ident::new("depth", Span::call_site());
+    let prefix_id = Ident::new("prefix", Span::call_site());
 
     let get_ret = if options.cache.is_enabled(cfg!(feature = "cache")) {
         quote! {
@@ -174,9 +176,12 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         &options.time,
         &func_name,
         &start_id,
+        &depth_id,
+        &prefix_id,
         args_lit_name.iter(),
         out_args.iter().copied(),
     );
+    let (depth_def, prefix_def) = trace_prefixes(&options.trace, &depth_id, &prefix_id);
     let let_values_fmt = let_values_fmt(&values_id, &out_args);
     let cache_def = cache_def(&cache_id, &vis, &ret_ty);
     let (cache_get, cache_set) = cache(&options.cache, &values_id, &cache_id, &res_id);
@@ -185,6 +190,8 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
     let post_injection = quote! {{
         #counter_inc
         #let_values_fmt
+        #depth_def
+        #prefix_def
         #trace_in
         #cache_get
         let #start_id = std::time::Instant::now();
@@ -221,6 +228,8 @@ fn trace<'a>(
     time_enabled: &Opt,
     name_str: &LitStr,
     start_id: &Ident,
+    depth_id: &Ident,
+    prefix_id: &Ident,
     args_names: impl Iterator<Item = &'a LitStr>,
     out_args: impl Iterator<Item = &'a Ident>,
 ) -> (TokenStream2, TokenStream2) {
@@ -228,31 +237,68 @@ fn trace<'a>(
 
     let in_trace = if trace_enabled {
         quote! {{
+            ::moneta_fn::DEPTH.with(|d| *d.borrow_mut() += 1);
             let args_fmt: String = [
                 #(#args_names,)*
             ].into_iter()
                 .zip([#(format!("{:?}", #out_args),)*].into_iter())
-                .map(|(n, v): (&str, String)| format!("\n\t{}: {}", n, v))
+                .map(|(n, v): (&str, String)| format!("\n{}    {}: {}", #depth_id, n, v))
                 .collect();
-            println!("in {}: {}", #name_str, args_fmt);
+            println!("{}in {}: {}",
+                     #prefix_id,
+                     #name_str,
+                     args_fmt
+            );
         }}
     } else {
         quote! { ; }
     };
 
+    let sub_depth = if trace_enabled {
+        quote! { ::moneta_fn::DEPTH.with(|d| { *d.borrow_mut() -= 1; }); }
+    } else {
+        quote! { ; }
+    };
+
     let out_trace = if time_enabled.is_enabled(cfg!(feature = "time")) {
-        quote! {
-            println!("out {}: {:?}", #name_str, #start_id.elapsed());
-        }
+        quote! {{
+            #sub_depth
+            println!("{}out {}: {:?}",
+                     #prefix_id,
+                     #name_str, #start_id.elapsed());
+        }}
     } else if trace_enabled {
-        quote! {
-            println!("out {}", #name_str);
-        }
+        quote! {{
+            #sub_depth
+            println!("{}out {}",
+                     #prefix_id,
+                     #name_str);
+        }}
     } else {
         quote! { ; }
     };
 
     (in_trace, out_trace)
+}
+
+fn trace_prefixes(
+    trace_enabled: &Opt,
+    depth_id: &Ident,
+    prefix_id: &Ident,
+) -> (TokenStream2, TokenStream2) {
+    if trace_enabled.is_enabled(cfg!(feature = "trace")) {
+        let depth = quote! {
+            let #depth_id = ::moneta_fn::DEPTH.with(|d| "    ".repeat(*d.borrow()));
+        };
+        let prefix = quote! {
+            let #prefix_id = format!("{}[{:?}{}] ", depth,
+                     std::thread::current().id(),
+                     std::thread::current().name().map_or_else(|| String::new(), |n| format!(":{}", n)));
+        };
+        (depth, prefix)
+    } else {
+        (quote! { ; }, quote! { let #prefix_id = String::new(); })
+    }
 }
 
 fn cache(

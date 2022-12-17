@@ -33,7 +33,7 @@ fn no_cache() {
 
 #[test]
 fn cached() {
-    #[moneta]
+    #[moneta(trace = "forbid")]
     pub const fn pow3(x: u128) -> u128 {
         x * x * x
     }
