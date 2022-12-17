@@ -177,6 +177,7 @@ pub fn moneta(meta: TokenStream, input: TokenStream) -> TokenStream {
         &start_id,
         &depth_id,
         &prefix_id,
+        &res_id,
         args_lit_name.iter(),
         out_args.iter().copied(),
     );
@@ -228,6 +229,7 @@ fn trace<'a>(
     start_id: &Ident,
     depth_id: &Ident,
     prefix_id: &Ident,
+    res_id: &Ident,
     args_names: impl Iterator<Item = &'a LitStr>,
     out_args: impl Iterator<Item = &'a Ident>,
 ) -> (TokenStream2, TokenStream2) {
@@ -261,16 +263,19 @@ fn trace<'a>(
     let out_trace = if time.is_enabled(cfg!(feature = "time")) {
         quote! {{
             #sub_depth
-            println!("{}out {}: {:?}",
+            println!("{}out {} ({:?}): {:?}",
                      #prefix_id,
-                     #name_str, #start_id.elapsed());
+                     #name_str,
+                     #start_id.elapsed(),
+                     #res_id);
         }}
     } else if trace_enabled {
         quote! {{
             #sub_depth
-            println!("{}out {}",
+            println!("{}out {}: {:?}",
                      #prefix_id,
-                     #name_str);
+                     #name_str,
+                     #res_id);
         }}
     } else {
         quote! { ; }

@@ -83,7 +83,7 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "moneta_fn"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "bencher",
  "hashbrown",
@@ -93,7 +93,7 @@ dependencies = [
 
 [[package]]
 name = "moneta_fn_macros"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "darling",
  "proc-macro2",
