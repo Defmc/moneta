@@ -9,7 +9,7 @@ categories = ["accessibility", "caching", "development-tools"]
 license = "MIT"
 
 [dependencies]
-darling = "0.14.2"
+darling = "0.20.3"
 proc-macro2 = "1.0.67"
 quote = "1.0.33"
 syn = { version = "2.0.37", features = ["full", "fold"] }
