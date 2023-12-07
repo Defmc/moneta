@@ -10,7 +10,7 @@ license = "MIT"
 
 [dependencies]
 hashbrown = "0.14.0"
-once_cell = "1.18.0"
+once_cell = "1.19.0"
 moneta_fn_macros = { path = "src/macros", version = "0.2.11", default-features = false }
 
 [dev-dependencies]
